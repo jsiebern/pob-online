@@ -8,7 +8,7 @@ import * as Reprocessing_Draw from "reprocessing/src/Reprocessing_Draw.bs.js";
 import * as Reprocessing_Constants from "reprocessing/src/Reprocessing_Constants.bs.js";
 
 function Test$TestComponent(Props) {
-  return React.createElement("div", undefined, "Fuback Das Ding");
+  return React.createElement("div", undefined, "React test");
 }
 
 var TestComponent = {
@@ -21,23 +21,84 @@ if (!(root == null)) {
   ReactDom.render(React.createElement(Test$TestComponent, {}), root);
 }
 
-function setup(env) {
-  return Reprocessing_Env.size(200, 200, env);
+function worldToScreen(cWorld, offset) {
+  return {
+          x: cWorld.x - offset.x | 0,
+          y: cWorld.y - offset.y | 0
+        };
 }
 
-function draw(_state, env) {
+function screenToWorld(cScreen, offset) {
+  return {
+          x: cScreen.x + offset.x | 0,
+          y: cScreen.y + offset.y | 0
+        };
+}
+
+function setup(env) {
+  Reprocessing_Env.size(720, 468, env);
+  return {
+          cOffset: {
+            x: 0,
+            y: 0
+          },
+          startPan: undefined
+        };
+}
+
+function draw(state, env) {
   Reprocessing_Draw.background(Reprocessing_Constants.black, env);
   Reprocessing_Draw.fill(Reprocessing_Constants.red, env);
-  return Reprocessing_Draw.rect([
-              50,
-              50
-            ], 100, 100, env);
+  var rectPosS = worldToScreen({
+        x: 50,
+        y: 50
+      }, state.cOffset);
+  Reprocessing_Draw.rect([
+        rectPosS.x,
+        rectPosS.y
+      ], 100, 100, env);
+  return state;
 }
 
-Reprocessing.run(setup, undefined, draw, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined);
+Reprocessing.run(setup, undefined, draw, undefined, (function (state, env) {
+        var match = Reprocessing_Env.mouse(env);
+        var y = match[1];
+        var x = match[0];
+        var pan = state.startPan;
+        if (pan !== undefined) {
+          return {
+                  cOffset: {
+                    x: state.cOffset.x - (x - pan.x | 0) | 0,
+                    y: state.cOffset.y - (y - pan.y | 0) | 0
+                  },
+                  startPan: {
+                    x: x,
+                    y: y
+                  }
+                };
+        } else {
+          return state;
+        }
+      }), (function (state, env) {
+        var match = Reprocessing_Env.mouse(env);
+        return {
+                cOffset: state.cOffset,
+                startPan: {
+                  x: match[0],
+                  y: match[1]
+                }
+              };
+      }), (function (state, _env) {
+        return {
+                cOffset: state.cOffset,
+                startPan: undefined
+              };
+      }), undefined, undefined, undefined, undefined);
 
 export {
   TestComponent ,
+  worldToScreen ,
+  screenToWorld ,
   setup ,
   draw ,
   
