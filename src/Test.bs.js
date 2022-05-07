@@ -35,6 +35,15 @@ function screenToWorld(cScreen, offset) {
         };
 }
 
+var deltaY = {
+  contents: []
+};
+
+document.addEventListener("wheel", (function ($$event) {
+        var dY = $$event.deltaY;
+        return deltaY.contents.push(dY);
+      }));
+
 function setup(env) {
   Reprocessing_Env.size(720, 468, env);
   return {
@@ -42,22 +51,48 @@ function setup(env) {
             x: 0,
             y: 0
           },
-          startPan: undefined
+          startPan: undefined,
+          deltaY: 0.0,
+          scale: {
+            x: 1.0,
+            y: 1.0
+          }
         };
 }
 
 function draw(state, env) {
+  var dY = deltaY.contents.shift();
+  var state$1;
+  if (dY !== undefined) {
+    var factor = 1 - dY / 1000;
+    state$1 = {
+      cOffset: state.cOffset,
+      startPan: state.startPan,
+      deltaY: dY,
+      scale: {
+        x: state.scale.x * factor,
+        y: state.scale.y * factor
+      }
+    };
+  } else {
+    state$1 = {
+      cOffset: state.cOffset,
+      startPan: state.startPan,
+      deltaY: 0.0,
+      scale: state.scale
+    };
+  }
   Reprocessing_Draw.background(Reprocessing_Constants.black, env);
   Reprocessing_Draw.fill(Reprocessing_Constants.red, env);
   var rectPosS = worldToScreen({
         x: 50,
         y: 50
-      }, state.cOffset);
+      }, state$1.cOffset);
   Reprocessing_Draw.rect([
-        rectPosS.x,
-        rectPosS.y
-      ], 100, 100, env);
-  return state;
+        rectPosS.x * state$1.scale.x | 0,
+        rectPosS.y * state$1.scale.y | 0
+      ], 100 * state$1.scale.x | 0, 100 * state$1.scale.y | 0, env);
+  return state$1;
 }
 
 Reprocessing.run(setup, undefined, draw, undefined, (function (state, env) {
@@ -74,7 +109,9 @@ Reprocessing.run(setup, undefined, draw, undefined, (function (state, env) {
                   startPan: {
                     x: x,
                     y: y
-                  }
+                  },
+                  deltaY: state.deltaY,
+                  scale: state.scale
                 };
         } else {
           return state;
@@ -86,12 +123,16 @@ Reprocessing.run(setup, undefined, draw, undefined, (function (state, env) {
                 startPan: {
                   x: match[0],
                   y: match[1]
-                }
+                },
+                deltaY: state.deltaY,
+                scale: state.scale
               };
       }), (function (state, _env) {
         return {
                 cOffset: state.cOffset,
-                startPan: undefined
+                startPan: undefined,
+                deltaY: state.deltaY,
+                scale: state.scale
               };
       }), undefined, undefined, undefined, undefined);
 
@@ -99,6 +140,7 @@ export {
   TestComponent ,
   worldToScreen ,
   screenToWorld ,
+  deltaY ,
   setup ,
   draw ,
   
